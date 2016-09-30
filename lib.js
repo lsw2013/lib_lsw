@@ -17,3 +17,57 @@ function extend(target, source) {
 function isArray(o) {
 	return Object.prototype.toString.call(o) === '[object Array]';
 }
+
+function mysqlJoin(arr) {
+	return '`' + arr.join('`, `') + '`';
+}
+
+function getTbl(tbl, type) {
+	var rlt = {};
+	console.log(tbl);
+	if (!tbl.tblName) {
+		rlt = {
+			err: 'hasn\'t find tblName!'
+		}
+	};
+	if(!tbl.tblRow) {
+		rlt = {
+			err: 'hasn\'t find tblRow!'
+		}
+	};
+	if(!isArray(tbl.tblRow)) {
+		rlt = {
+			err: 'typeof tblRow error; should be Array!'
+		}
+	}
+	// 加速返回
+	if(rlt.error) {
+		return rlt;
+	};
+	var name = tbl.tblName, 
+		rows = tbl.tblRows,
+		len = tbl.tblRows.length;
+	var insertArr = [];
+	for(var i = 0; i < len; i++) {
+		insertArr.push('?');
+	}
+	var insertStr = insertArr.join(',');
+	var rowsStr = mysqlJoin(rows);
+	var tblSlt = 'SELECT ' + rowsStr + ' FROM ' + name;
+	var tblIst = 'INSERT INTO `' + name + '` (' + rowsStr + ') VALUES (' + insertStr + ')';
+	// update table test set num = 2 where id = 1;
+	var upStr = '';
+	for(i = 1; i < len; i++) {
+		upStr = '`' + rows[i] + '` = ? '; 
+	};
+	var tblUpById = 'UPDATE TABLE `' + name + '` SET ' + upStr + 'WHERE ' + rows[0] + ' = ?';
+	var tblDelById = 'DELETE FROM TABLE `' + name + '` WHERE `' + rows[0] + '` = ?';
+	rlt = {
+		select: tblSlt,
+		insert: tblIst,
+		upById: tblUpById,
+		delById: tblDelById
+	};
+	console.log(rlt);
+}
+
