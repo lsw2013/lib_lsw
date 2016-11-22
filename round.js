@@ -1,6 +1,12 @@
 // round.js
 // 百家乐逻辑
+// round：接收一个pool，每次round.next()进行下一步
+// round.next()返回结果或者返回 '牌池已空'
+// 每局开始先各发两张牌pushCards，然后判断是不是需要补牌check
 // 2016年11月18日
+// var CardPool = require('./cardPool.js');
+
+var CardPool = require('./cardPool.js');
 var log = console.log;
 const CARDS_NUM = 4;
 var suit = {
@@ -11,9 +17,20 @@ var suit = {
 };
 
 // 公共方法放在外面
-function randomsort(a, b) {
-	return Math.random() > 0.5 ? -1 : 1;
-	//用Math.random()函数生成0~1之间的随机数与0.5比较，返回-1或1
+
+// 获取牌点数
+function getPoint(card) {
+	return parseInt(card.substring(1));
+}
+
+// 返回真正的点数
+function getRealPoint(point) {
+	return point > 9 ? 0 : point;
+}
+
+// 检查牌点数是不是9
+function checkNine(card) {
+	return getPoint(card) === 9;
 }
 
 /**
@@ -44,134 +61,178 @@ function getCardsPoint(player) {
 	var num = 0;
 	var tmp = 0;
 	for (k in player) {
-		tmp = player[k].substring(1);
-		tmp = parseInt(tmp);
+		tmp = getPoint(player[k]);
 		// 如果点数大于9则记作0
 		tmp = tmp > 9 ? 0 : tmp;
 		num += tmp;
 	}
 	// 如果总点数大于9则只要个位数
-	num = num > 10 ? num - 10 : num;
+	num = num > 9 ? num - 10 : num;
 	return num;
 }
 
+
 // round.start(n) 初始化n副牌的牌池
-// round.next() 消耗牌池并返回结果，如果牌池消耗完，自动start新牌池
+// round.next() 消耗牌池并返回结果
+// // 如果牌池消耗完，自动start新牌池
 // round.getResultList() 返回历史结果列表
-var Round = function() {
+var Round = function(cardPool) {
 
 	// 公共数据可以放在外面，私有数据需要放在里面，防止被其它实例修改掉。
-	var numPool = [];
-	var cardPool = [];
+	var player = {};
+	var banker = {};
+
 	var round = {
-		banker: {},
-		player: {}
+		player: player,
+		banker: banker
 	}; // 一局里面的局势
-	var result = {};
+
+	var bankerPoints = 0;
+	var playerPoints = 0;
+
+	var result = {
+		winner: '',
+		playerSuit: false,
+		bankerSuit: false
+	};
 	var resultList = [];
+	var roundEnd;
 
-	// start：初始化牌局
-	this.start = function(num) {
-		this.genNumPool(num).genCardPool();
-		return this;
+	// 私用方法放前面
+	function getCard() {
+		return cardPool.shift();
 	}
 
-	// round：进行一局游戏
-	this.getRoundResult = function() {
-		return this.genRound().genResult().getResult();
-		// return this;  此处不能return this...  上面的getResult()处已有return;
-	}
+	// 获取结果
+	function genResult() {
+		// log('genResult:     p:', playerPoints, 'b:', bankerPoints);
 
-	// next：下一局
-	this.next = function() {
-		return this.getRoundResult();
-	}
-
-	// 生成数字池
-	this.genNumPool = function(num) {
-		num = num || CARDS_NUM;
-		if (typeof num !== 'number') {
-			throw new TypeError('need a number but not given!', 'bjl.js');
-			return;
-		}
-		// 获取1到52*n顺序的数组
-		for (var a = 1, count = 52 * num; a <= count; a++) {
-			numPool.push(a);
-		}
-		// 再打乱它
-		numPool = numPool.sort(randomsort);
-		return this;
-	}
-
-	// 生成牌池
-	this.genCardPool = function() {
-		for (var i = 0, len = numPool.length; i < len; i++) {
-			var num = numPool.pop();
-			// 花色
-			var cardSuit = parseInt(num % 4) + 1;
-			cardSuit = suit[cardSuit];
-			// 点数
-			var point = (num % 52) % 13 + 1;
-			// 推进牌池
-			cardPool.push(cardSuit + point);
-		}
-		// 牌池get
-		return this;
-	}
-
-	// 生成牌局
-	this.genRound = function() {
-		// 如果牌池的牌数量是0，生成牌池
-		if (cardPool.length === 0) {
-			this.start(CARDS_NUM);
-		}
-		if (cardPool.length < 4) {
-			throw new Error('last pork isn\'t enough! game over!')
-			var newPool = getCardPool(getNumPool());
-			cardPool = cardPool.concat(newPool);
-		}
-		round.player[1] = cardPool.shift();
-		round.banker[1] = cardPool.shift();
-		round.player[2] = cardPool.shift();
-		round.banker[2] = cardPool.shift();
-		// log(this.getCardPool().length);
-		return this;
-	}
-
-
-	/**
-	 * 百家乐生成结果
-	 * banker,player数据结构相同
-	 */
-	this.genResult = function() {
-		// var round = this.getRound();
-		var banker = round.banker;
-		var player = round.player;
-		var bankerPoint = getCardsPoint(banker);
-		var playerPoint = getCardsPoint(player);
-		var bRlt = Math.abs(bankerPoint - 9); 
-		var pRlt = Math.abs(playerPoint - 9);
-		if (bRlt > pRlt) {
+		if (playerPoints > bankerPoints) {
 			result.winner = 'player';
-		} else if (bRlt === pRlt) {
+		} else if (playerPoints === bankerPoints) {
 			result.winner = 'none';
 		} else {
 			result.winner = 'banker';
 		}
-		// result.winner = bRlt > pRlt ? 'player' : 'banker';
+	}
+
+	// 检查玩家是否需要补牌，先不管庄家最终不得补牌的情况
+	function checkNatural () {
+		// 都不需要补牌的情况
+		// if (playerPoints >= 6 && bankerPoints >= 7) {
+		if (playerPoints >= 6 && bankerPoints >= 7) { // 只要玩家大于等于6，并且庄家大于等于7，就都不能补牌了，结束
+			roundEnd = true;
+			// result.winner = playerPoints > bankerPoints ? 'player' : 'banker';
+		// log('checkNatural: p:', playerPoints, 'b:', bankerPoints);
+
+			genResult();
+		}
+	}
+
+	// 检查庄家是否补牌
+	// 检查玩家的牌来判断庄家是否需要补牌，此时玩家的牌是0-5，庄家的牌是0-6
+	// 返回即定胜负的情况(庄家不能补牌的情况)
+	// 用来锁定胜局，其它的是庄家需要补牌的情况
+	function checkPlayerCard() {
+		var point = getPoint(player[3]);
+		// 庄家不能补牌的情况，此时玩家已经补牌
+		if (bankerPoints === 3 && point === 8) {
+			// 庄家是3点且玩家第三张牌是8，不补牌
+			roundEnd = true;
+		} else if (bankerPoints === 4 && (point >= 8 || point === 1)) {
+			// 庄家是4点且闲家第3张牌是1,8,9,10,11,12,13 (0,1,8,9)
+			roundEnd = true;
+		} else if (bankerPoints === 5 && (point >= 8 || point <= 3)) {
+			// 庄家是5点且闲家第3张牌是0,1,2,3,8,9 (1,2,3 8,9,10,11,12,13)
+			roundEnd = true;
+		} else if (bankerPoints === 6 && (point < 6 || point > 7)) {
+			// 庄家是6点且玩家第3张牌是不是6或7
+			roundEnd = true;
+		}
+		// 既然发牌了就需要重新计算玩家真正点数，而不是要结束才计算
+		point = getRealPoint(point);
+		playerPoints += point;
+		playerPoints = playerPoints > 9 ? playerPoints - 10 : playerPoints;
+		// 如果结束，判断结果
+		if (roundEnd) {
+		log('checkPlayerCard: p:', playerPoints, 'b:', bankerPoints);
+			genResult();
+		}
+
+	}
+
+	// 发牌
+	this.pushCards = function() {
+		round.player[1] = getCard();
+		round.banker[1] = getCard();
+		round.player[2] = getCard();
+		round.banker[2] = getCard();
 		result.bankerSuit = checkPlayerSuit(banker);
 		result.playerSuit = checkPlayerSuit(player);
-		var tmpObj = {};
-		for(k in result) {
-			tmpObj[k] = result[k];
-		}
-		resultList.push(tmpObj);  // 不能直接push result,也不能tmpObj = result；引用类型好烦
 		return this;
 	}
 
-	// 获取私有变量的函数放在最后
-	this.getNumPool = function() {
-		return numPool;
+	// 获取结果
+	// 1.检查双方是否为8或9(天牌)，判断是否结束
+	// 2.检查闲是否需要补牌
+	// 3.判断庄是否需要补牌
+	// 4.判断结果
+	this.getRoundResult = function() {
+		playerPoints = getCardsPoint(player);  // 0
+		bankerPoints = getCardsPoint(banker);  // 6
+		// log('getRoundResult: p:', playerPoints, 'b:', bankerPoints);
+		checkNatural();  // 检查是不是都不能补牌
+
+		if (!roundEnd) {  // 玩家补牌，检查庄家是否需要补牌
+			// log('player get card!');
+			if(playerPoints <= 5) {
+				// 只有玩家的点数小于等于5才可以补牌，否则就到下一步
+				player[3] = getCard();
+				checkPlayerCard();
+			}
+		}
+
+		if (!roundEnd) {  // 庄家补牌，判断结果
+			// log('banker get card!');
+			// log('getRoundResult2: p:', playerPoints, 'b:', bankerPoints);
+			if(bankerPoints <= 6) {
+				// 前面的checkPlayerCard() 已经过滤掉了庄不能补牌的情况
+				// 因此只要庄这里的小于5都可以补牌
+				banker[3] = getCard();
+				roundEnd = true;
+				bankerPoints = bankerPoints + getRealPoint(getPoint(banker[3]));
+				bankerPoints = bankerPoints > 9 ? bankerPoints - 10 : bankerPoints;
+			}
+			
+		// log('getRoundResult2: p:', playerPoints, 'b:', bankerPoints);
+
+			genResult();
+		}
+		var tmpResult = {};
+		tmpResult = result;
+
+		resultList.push(tmpResult);
+		return result;
+	}
+
+	// next：下一局
+	this.next = function() {
+		// 初始化所有信息
+		roundEnd = false;
+		player = {};
+		banker = {};
+		round = {
+			player: player,
+			banker: banker,
+		};
+		pGetCard = false;
+		bGetCard = true;
+		result = {
+			winner: '',
+			bankerSuit: false,
+			playerSuit: false
+		}
+		return this.pushCards().getRoundResult();
 	}
 
 	this.getCardPool = function() {
@@ -191,18 +252,45 @@ var Round = function() {
 	}
 }
 
-var r = new Round();
-r.start(2);
+var p = new CardPool().get(8);
+
+var r = new Round(p);
+// log(r.next());
+// log(r.getRound());
+// log(r.getResult());
+// log(r.getResultList());
 
 // log(r.getCardPool().length);
 
-for(var i = 0; i < 52; i++) {
-	// log(r.next());
-	log(r.getCardPool().length);
-	r.next();
-}
-// log(r.getResultList());
+// var card = '';
+// for(var i = 0; i < 50; i++) {
+// 	card += r.getCardPool()[i] + ' ';
+// 	if((i+1)%10 === 0) {
+// 		card += '\r\n';
+// 	}
+// }
+// log(card);
 
+// var l = [];
+for (var i = 0; i < 24; i++) {
+	// (function(i) {
+	// 	var a = {};
+	// 	a[i] = i;
+	// 	l.push(a);
+	// })(i);
+	
+	log(r.getCardPool().length);
+	// log(r.next());
+	r.next();
+	// log(r.getRound());
+	if(r.getRound().banker[3]) {
+		log(r.getRound());
+	}
+	log(r.getResult());
+}
+// log(l);
+log();
+// log(r.getResultList());
 
 
 module.exports = Round;
