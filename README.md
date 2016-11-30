@@ -12,3 +12,5 @@ vue.js:vue原生不支持通过抄作数组索引来修改数组，为了实现�
 round.js: 百家乐运行类。可对百家乐的胜率进行测试。
 
 cardPool.js: 产生牌池。
+
+redis-record.js: 读取redis中的所有值，打印出来，并且写到文件record.txt中。  TODO!
