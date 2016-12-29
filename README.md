@@ -16,3 +16,5 @@ cardPool.js: 产生牌池。
 redis-record.js: 读取redis中的所有值，打印出来，并且写到文件record.txt中。  TODO! 
 
 setInterval.js: 定时改变状态，适用于周期性执行的多个任务。  TODD: 添加添加任务的接口，输入函数和倒计时，直接添加周期性任务。  任务可命名，可添加，可删除，可更改任务顺序。
+
+genRobotId.js: 生成需要添加或删除的机器人ID。
