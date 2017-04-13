@@ -36,12 +36,12 @@ function getTbl(tbl, type) {
 		rlt = {
 			err: 'hasn\'t find tblName!'
 		}
-	};
+	}
 	if(!tbl.tblRow) {
 		rlt = {
 			err: 'hasn\'t find tblRow!'
 		}
-	};
+	}
 	if(!isArray(tbl.tblRow)) {
 		rlt = {
 			err: 'typeof tblRow error; should be Array!'
@@ -50,7 +50,7 @@ function getTbl(tbl, type) {
 	// 加速返回
 	if(rlt.error) {
 		return rlt;
-	};
+	}
 	var name = tbl.tblName, 
 		rows = tbl.tblRows,
 		len = tbl.tblRows.length;
