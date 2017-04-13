@@ -13,6 +13,13 @@ function extend(target, source) {
 	return target;
 }
 
+// 获取一个概率值
+// some = 1, all = 5, 获取一个1/5的概率真值
+function probability(some, all) {
+	var tmp = Math.random();
+	return tmp < some/all;
+}
+
 // 判断是不是数组
 function isArray(o) {
 	return Object.prototype.toString.call(o) === '[object Array]';
