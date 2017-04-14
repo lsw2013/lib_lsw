@@ -1,8 +1,8 @@
 
-// 使用source的属性来扩展target的属性
+// 使用 source 的属性来扩展 target 的属性
 function extend(target, source) {
-	if(source) {
-		for(var key in source) {
+	if (source) {
+		for (var key in source) {
 			var val = source[key];
 
 			if (typeof val !== "undefined") {
@@ -17,8 +17,14 @@ function extend(target, source) {
 // some = 1, all = 5, 获取一个1/5的概率真值
 function probability(some, all) {
 	var tmp = Math.random();
-	return tmp < some/all;
+	return tmp < some / all;
 }
+// 生成平均分布的 [min, max] 区间的数字
+function genRandomNum(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+	// return Math.floor(Math.random() * (max - min)) + min; // [min, max) // 不包括max
+	// return Math.ceil(Math.random() * (max - min + 1)) + min; // (min, max] // 不包括min
+};
 
 // 判断是不是数组
 function isArray(o) {
@@ -34,28 +40,28 @@ function getTbl(tbl, type) {
 	console.log(tbl);
 	if (!tbl.tblName) {
 		rlt = {
-			err: 'hasn\'t find tblName!'
+			err: 'has not find tblName!'
 		}
 	}
-	if(!tbl.tblRow) {
+	if (!tbl.tblRow) {
 		rlt = {
-			err: 'hasn\'t find tblRow!'
+			err: 'has not find tblRow!'
 		}
 	}
-	if(!isArray(tbl.tblRow)) {
+	if (!isArray(tbl.tblRow)) {
 		rlt = {
 			err: 'typeof tblRow error; should be Array!'
 		}
 	}
 	// 加速返回
-	if(rlt.error) {
+	if (rlt.error) {
 		return rlt;
 	}
-	var name = tbl.tblName, 
+	var name = tbl.tblName,
 		rows = tbl.tblRows,
 		len = tbl.tblRows.length;
 	var insertArr = [];
-	for(var i = 0; i < len; i++) {
+	for (var i = 0; i < len; i++) {
 		insertArr.push('?');
 	}
 	var insertStr = insertArr.join(',');
@@ -64,8 +70,8 @@ function getTbl(tbl, type) {
 	var tblIst = 'INSERT INTO `' + name + '` (' + rowsStr + ') VALUES (' + insertStr + ')';
 	// update table test set num = 2 where id = 1;
 	var upStr = '';
-	for(i = 1; i < len; i++) {
-		upStr = '`' + rows[i] + '` = ? '; 
+	for (i = 1; i < len; i++) {
+		upStr = '`' + rows[i] + '` = ? ';
 	};
 	var tblUpById = 'UPDATE TABLE `' + name + '` SET ' + upStr + 'WHERE ' + rows[0] + ' = ?';
 	var tblDelById = 'DELETE FROM TABLE `' + name + '` WHERE `' + rows[0] + '` = ?';
