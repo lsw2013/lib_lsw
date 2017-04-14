@@ -1,15 +1,15 @@
 var uidList = [{
-	uid: 2
+    uid: 2
 }, {
-	uid: 3
+    uid: 3
 }, {
-	uid: 1
+    uid: 1
 }, {
-	uid: 4
+    uid: 4
 }, {
-	uid: 3
+    uid: 3
 }, {
-	uid: 2
+    uid: 2
 }];
 
 // 为了精简在用in查询数据库时候的数据数量
@@ -55,7 +55,7 @@ function getNoRepeatList1(arr) {
             count++;
         }
     }
-    console.log('noRepeatVal: ' + count);    
+    console.log('noRepeatVal: ' + count);
     return reList;
 }
 
@@ -77,13 +77,13 @@ function getNoRepeatList2(arr) {
 var arr1 = [];
 
 // 生成随机大小的数字
-function genRandomNum (min, max) {
-	return min + parseInt(Math.random() * (max - min));
+function genRandomNum(min, max) {
+    return min + parseInt(Math.random() * (max - min));
 };
 
 var i = 0;
 console.time('arr');
-for(; i < 10000; i++) {
+for (; i < 10000; i++) {
     arr1.push(genRandomNum(0, 10000));
 }
 console.timeEnd('arr');
