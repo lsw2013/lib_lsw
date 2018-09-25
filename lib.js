@@ -1,5 +1,5 @@
 
-var exp = module.exports;
+var exp = exports = module.exports;
 
 // 使用 source 的属性来扩展 target 的属性
 function extend(target, source) {
